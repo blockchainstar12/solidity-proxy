@@ -1,22 +1,29 @@
 const hre = require("hardhat");
 
 async function main() {
-  // Initial mint fee (0.1 ETH)
-  const MINT_FEE = hre.ethers.parseEther("0.1");
-
-  console.log("Deploying NFTProxy contract...");
-  
-  const NFTProxy = await hre.ethers.getContractFactory("NFTProxy");
-  const nftProxy = await NFTProxy.deploy(MINT_FEE);
-  
-  await nftProxy.waitForDeployment();
-  const address = await nftProxy.getAddress();
-
-  console.log(`NFTProxy deployed to: ${address}`);
-  console.log(`Initial mint fee set to: ${MINT_FEE} wei`);
+  try {
+    // Get the contract factory
+    const NFTProxy = await hre.ethers.getContractFactory("NFTProxy");
+    
+    // Deploy the contract
+    const nftProxy = await NFTProxy.deploy();
+    
+    // Wait for deployment to complete
+    await nftProxy.waitForDeployment();
+    
+    // Get the deployed contract address
+    const deployedAddress = await nftProxy.getAddress();
+    
+    console.log("NFTProxy deployed to:", deployedAddress);
+  } catch (error) {
+    console.error("Deployment failed:", error);
+    process.exit(1);
+  }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
