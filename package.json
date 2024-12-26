@@ -15,6 +15,7 @@
     "hardhat": "^2.22.17"
   },
   "dependencies": {
-    "@layerzerolabs/solidity-examples": "^1.1.0"
+    "@layerzerolabs/solidity-examples": "^1.1.0",
+    "dotenv": "^16.4.7"
   }
 }
