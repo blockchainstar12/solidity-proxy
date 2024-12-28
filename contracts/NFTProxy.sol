@@ -13,6 +13,8 @@ contract NFTProxy is Ownable, ReentrancyGuard {
         bytes extension
     );
 
+    mapping(string => bool) private mintedTokenIds;
+
     // Constructor to initialize the Ownable contract with the deployer as the initial owner
     constructor() Ownable(msg.sender) {}
 
@@ -22,6 +24,11 @@ contract NFTProxy is Ownable, ReentrancyGuard {
         string calldata tokenURI,
         bytes calldata extension
     ) external payable nonReentrant {
+        require(!mintedTokenIds[tokenId], "Token ID already minted");
+
+        // Mark the tokenId as minted
+        mintedTokenIds[tokenId] = true;        
+        
         // Emit the MintRequest event
         emit MintRequest(msg.sender, tokenId, tokenURI, extension);
         
