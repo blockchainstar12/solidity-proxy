@@ -1,22 +1,35 @@
 const hre = require("hardhat");
 
 async function main() {
-    const Contract_Address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"; // Contract address after deploying the contract
-    const NFTProxy = await hre.ethers.getContractAt("NFTProxy", Contract_Address);
+    try {
+        const Contract_Address = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+        const NFTProxy = await hre.ethers.getContractAt("NFTProxy", Contract_Address);
 
-    const tokenId = "999";
-    const tokenURI = "https://example.com/metadata/999";
-    const extension = hre.ethers.toUtf8Bytes("test extension");
-    const event = await NFTProxy.requestMint(tokenId, tokenURI, extension);
+        const tokenId = "18021";
+        const tokenURI = "https://example.com/metadata/1";
+        const extension = hre.ethers.AbiCoder.defaultAbiCoder().encode(["string"], ["test metadata"]);
 
-    const tx = await NFTProxy.requestMint(tokenId, tokenURI, extension, {
-        value: hre.ethers.parseEther("0")
-    });
+        console.log("\nPreparing to mint NFT:");
+        console.log("Token ID:", tokenId);
+        console.log("Token URI:", tokenURI);
+        console.log("Extension:", extension);
 
-    console.log("Transaction sent: ", tx.hash);
+        const tx = await NFTProxy.requestMint(tokenId, tokenURI, extension, {
+            value: hre.ethers.parseEther("0.1")
+        });
 
-    const receipt = await tx.wait();
-    console.log("Transaction mined: ", receipt.hash);
+        console.log("\nTransaction Details:");
+        console.log("Hash:", tx.hash);
+        console.log("To:", tx.to);
+        console.log("From:", tx.from);
+        console.log("\nWaiting for confirmation...");
+
+        const receipt = await tx.wait();
+        console.log("\nTransaction confirmed in block:", receipt.blockNumber);
+    } catch (error) {
+        console.error("\nError:", error.message);
+        process.exit(1);
+    }
 }
 
 main()
