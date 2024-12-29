@@ -13,9 +13,24 @@ contract NFTProxy is Ownable, ReentrancyGuard {
         bytes extension
     );
 
+    event TransferRequest(
+        address indexed from,
+        address indexed to,
+        string tokenId
+    );
+
+    event BurnRequest(
+        address indexed requester,
+        string tokenId
+    );
+
+    // Mapping to track minted tokenIds
     mapping(string => bool) private mintedTokenIds;
 
-    // Constructor to initialize the Ownable contract with the deployer as the initial owner
+    // Mapping to track token ownership
+    mapping(string => address) private tokenOwners;
+
+    // Constructor to initialize the Ownable contract
     constructor() Ownable(msg.sender) {}
 
     // Function to request minting of an NFT
@@ -27,11 +42,36 @@ contract NFTProxy is Ownable, ReentrancyGuard {
         require(!mintedTokenIds[tokenId], "Token ID already minted");
 
         // Mark the tokenId as minted
-        mintedTokenIds[tokenId] = true;        
+        mintedTokenIds[tokenId] = true;
+        tokenOwners[tokenId] = msg.sender;  // Track owner
         
         // Emit the MintRequest event
         emit MintRequest(msg.sender, tokenId, tokenURI, extension);
+    }
+
+    // Function to request transfer of an NFT
+    function requestTransfer(
+        address to,
+        string calldata tokenId
+    ) external nonReentrant {
+        require(tokenOwners[tokenId] == msg.sender, "Not token owner");
+        tokenOwners[tokenId] = to;  // Update owner
         
-        // Additional logic can be added here
+        emit TransferRequest(msg.sender, to, tokenId);
+    }
+
+    // Function to request burning of an NFT
+    function requestBurn(
+        string calldata tokenId
+    ) external nonReentrant {
+        require(tokenOwners[tokenId] == msg.sender, "Not token owner");
+        delete tokenOwners[tokenId];
+        
+        emit BurnRequest(msg.sender, tokenId);
+    }
+
+    // Public getter function for tokenOwners
+    function getTokenOwner(string calldata tokenId) external view returns (address) {
+        return tokenOwners[tokenId];
     }
 }
