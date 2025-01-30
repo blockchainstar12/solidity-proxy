@@ -5,7 +5,7 @@ async function main() {
         const Contract_Address = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9";
         const NFTProxy = await hre.ethers.getContractAt("NFTProxy", Contract_Address);
 
-        const tokenId = "19115";
+        const tokenId = "1900";
         const tokenURI = "https://example.com/metadata/1";
         const extension = hre.ethers.AbiCoder.defaultAbiCoder().encode(["string"], ["test metadata"]);
 
