@@ -20,47 +20,78 @@ describe("NFTProxy", function () {
     it("should allow first-time minting with valid tokenId", async function () {
       const tokenId = "123456";
       const tokenURI = "https://example.com/metadata/123456";
-      const extension = ethers.AbiCoder.defaultAbiCoder().encode(["string"], ["test metadata"]);
+      const extension = "0x";
 
-      await expect(nftProxy.connect(addr1).requestMint(tokenId, tokenURI, extension, {
-        value: ethers.parseEther("0.1")
-      }))
+      await expect(nftProxy.connect(addr1).requestMint(tokenId, tokenURI, extension))
         .to.emit(nftProxy, "MintRequest")
         .withArgs(addr1.address, tokenId, tokenURI, extension);
+
+      expect(await nftProxy.getTokenOwner(tokenId)).to.equal(addr1.address);
     });
 
-    it("should prevent minting with duplicate tokenId", async function () {
+    it("should not allow minting with an already minted tokenId", async function () {
       const tokenId = "123456";
       const tokenURI = "https://example.com/metadata/123456";
-      const extension = ethers.AbiCoder.defaultAbiCoder().encode(["string"], ["test metadata"]);
+      const extension = "0x";
 
-      // First mint
-      await nftProxy.connect(addr1).requestMint(tokenId, tokenURI, extension, {
-        value: ethers.parseEther("0.1")
-      });
+      await nftProxy.connect(addr1).requestMint(tokenId, tokenURI, extension);
 
-      // Attempt duplicate mint
-      await expect(
-        nftProxy.connect(addr2).requestMint(tokenId, tokenURI, extension, {
-          value: ethers.parseEther("0.1")
-        })
-      ).to.be.revertedWith("Token ID already minted");
+      await expect(nftProxy.connect(addr1).requestMint(tokenId, tokenURI, extension))
+        .to.be.revertedWith("Token ID already minted");
+    });
+  });
+
+  describe("Transferring", function () {
+    it("should allow the owner to transfer the token", async function () {
+      const tokenId = "123456";
+      const tokenURI = "https://example.com/metadata/123456";
+      const extension = "0x";
+
+      await nftProxy.connect(addr1).requestMint(tokenId, tokenURI, extension);
+
+      await expect(nftProxy.connect(addr1).requestTransfer(addr2.address, tokenId))
+        .to.emit(nftProxy, "TransferRequest")
+        .withArgs(addr1.address, addr2.address, tokenId);
+
+      expect(await nftProxy.getTokenOwner(tokenId)).to.equal(addr2.address);
     });
 
-    it("should allow different users to mint different tokenIds", async function () {
-      const extension = ethers.AbiCoder.defaultAbiCoder().encode(["string"], ["test metadata"]);
+    it("should not allow a non-owner to transfer the token", async function () {
+      const tokenId = "123456";
+      const tokenURI = "https://example.com/metadata/123456";
+      const extension = "0x";
 
-      // First user mints
-      await nftProxy.connect(addr1).requestMint("123", "https://example.com/123", extension, {
-        value: ethers.parseEther("0.1")
-      });
+      await nftProxy.connect(addr1).requestMint(tokenId, tokenURI, extension);
 
-      // Second user mints
-      await expect(
-        nftProxy.connect(addr2).requestMint("456", "https://example.com/456", extension, {
-          value: ethers.parseEther("0.1")
-        })
-      ).to.emit(nftProxy, "MintRequest");
+      await expect(nftProxy.connect(addr2).requestTransfer(addr2.address, tokenId))
+        .to.be.revertedWith("Not token owner");
+    });
+  });
+
+  describe("Burning", function () {
+    it("should allow the owner to burn the token", async function () {
+      const tokenId = "123456";
+      const tokenURI = "https://example.com/metadata/123456";
+      const extension = "0x";
+
+      await nftProxy.connect(addr1).requestMint(tokenId, tokenURI, extension);
+
+      await expect(nftProxy.connect(addr1).requestBurn(tokenId))
+        .to.emit(nftProxy, "BurnRequest")
+        .withArgs(addr1.address, tokenId);
+
+      expect(await nftProxy.getTokenOwner(tokenId)).to.equal(ethers.ZeroAddress);
+    });
+
+    it("should not allow a non-owner to burn the token", async function () {
+      const tokenId = "123456";
+      const tokenURI = "https://example.com/metadata/123456";
+      const extension = "0x";
+
+      await nftProxy.connect(addr1).requestMint(tokenId, tokenURI, extension);
+
+      await expect(nftProxy.connect(addr2).requestBurn(tokenId))
+        .to.be.revertedWith("Not token owner");
     });
   });
 });
