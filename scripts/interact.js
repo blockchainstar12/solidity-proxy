@@ -2,21 +2,48 @@ const hre = require("hardhat");
 
 async function main() {
     try {
-        const Contract_Address = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9";
+        const Contract_Address = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
         const NFTProxy = await hre.ethers.getContractAt("NFTProxy", Contract_Address);
 
-        const tokenId = "1900";
+        const tokenId = "1709"; // Using a new token ID
+        const chainType = "ethereum";
+        const ownerAddress = "0x0729a81A995Bed60F4F6C5Ec960bEd999740e160"; 
         const tokenURI = "https://example.com/metadata/1";
-        const extension = hre.ethers.AbiCoder.defaultAbiCoder().encode(["string"], ["test metadata"]);
+        
+        // Create a properly structured metadata object that matches your contract's expectations
+        const metadata = {
+            name: "Cross-Chain NFT",
+            description: "Test NFT bridged from Ethereum to Nibiru",
+            image: "https://example.com/image.png",
+            attributes: [
+                {
+                    trait_type: "Source Chain",
+                    value: "Ethereum"
+                }
+            ]
+        };
+        
+        // Encode the metadata as bytes
+        const extension = hre.ethers.AbiCoder.defaultAbiCoder().encode(
+            ["string"], 
+            [JSON.stringify(metadata)]
+        );
 
         console.log("\nPreparing to mint NFT:");
         console.log("Token ID:", tokenId);
+        console.log("Chain Type:", chainType);
+        console.log("Owner Address:", ownerAddress);
         console.log("Token URI:", tokenURI);
-        console.log("Extension:", extension);
+        console.log("Extension (Metadata):", JSON.stringify(metadata, null, 2));
 
-        const mintTx = await NFTProxy.requestMint(tokenId, tokenURI, extension, {
-            value: hre.ethers.parseEther("0.1")
-        });
+        const mintTx = await NFTProxy.requestMint(
+            tokenId,
+            chainType,
+            ownerAddress,
+            tokenURI,
+            extension,
+            { value: hre.ethers.parseEther("0.1") }
+        );
 
         console.log("\nMint Transaction Details:");
         console.log("Hash:", mintTx.hash);
@@ -27,46 +54,11 @@ async function main() {
         const mintReceipt = await mintTx.wait();
         console.log("\nMint Transaction confirmed in block:", mintReceipt.blockNumber);
 
-        // Transfer the NFT
-        const recipient = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"; // Replace with actual recipient address
-        console.log("\nPreparing to transfer NFT:");
-        console.log("Token ID:", tokenId);
-        console.log("Recipient:", recipient);
-
-        const transferTx = await NFTProxy.requestTransfer(recipient, tokenId);
-        console.log("\nTransfer Transaction Details:");
-        console.log("Hash:", transferTx.hash);
-        console.log("To:", transferTx.to);
-        console.log("From:", transferTx.from);
-        console.log("\nWaiting for confirmation...");
-
-        const transferReceipt = await transferTx.wait();
-        console.log("\nTransfer Transaction confirmed in block:", transferReceipt.blockNumber);
-
-        // Verify the new owner
-        const newOwner = await NFTProxy.getTokenOwner(tokenId);
-        console.log("\nNew Owner of Token ID", tokenId, ":", newOwner);
-
-        // Burn the NFT
-        console.log("\nPreparing to burn NFT:");
-        console.log("Token ID:", tokenId);
-
-        // Connect to the contract as the new owner
-        const signer = await hre.ethers.getSigner(recipient);
-        const NFTProxyWithSigner = NFTProxy.connect(signer);
-
-        const burnTx = await NFTProxyWithSigner.requestBurn(tokenId);
-        console.log("\nBurn Transaction Details:");
-        console.log("Hash:", burnTx.hash);
-        console.log("To:", burnTx.to);
-        console.log("From:", burnTx.from);
-        console.log("\nWaiting for confirmation...");
-
-        const burnReceipt = await burnTx.wait();
-        console.log("\nBurn Transaction confirmed in block:", burnReceipt.blockNumber);
-
     } catch (error) {
         console.error("\nError:", error.message);
+        if (error.data) {
+            console.error("Error data:", error.data);
+        }
         process.exit(1);
     }
 }

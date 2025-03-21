@@ -9,6 +9,8 @@ contract NFTProxy is Ownable, ReentrancyGuard {
     event MintRequest(
         address indexed requester,
         string tokenId,
+        string chainType,
+        string ownerAddress,
         string tokenURI,
         bytes extension
     );
@@ -33,20 +35,35 @@ contract NFTProxy is Ownable, ReentrancyGuard {
     // Constructor to initialize the Ownable contract
     constructor() Ownable(msg.sender) {}
 
-    // Function to request minting of an NFT
+    // Function to request minting of an NFT with additional ownership information
     function requestMint(
         string calldata tokenId,
+        string calldata chainType,
+        string calldata ownerAddress,
         string calldata tokenURI,
         bytes calldata extension
     ) external payable nonReentrant {
         require(!mintedTokenIds[tokenId], "Token ID already minted");
+        require(bytes(chainType).length > 0, "Chain type cannot be empty");
+        require(bytes(ownerAddress).length > 0, "Owner address cannot be empty");
 
         // Mark the tokenId as minted
         mintedTokenIds[tokenId] = true;
-        tokenOwners[tokenId] = msg.sender;  // Track owner
         
-        // Emit the MintRequest event
-        emit MintRequest(msg.sender, tokenId, tokenURI, extension);
+        // Only set the tokenOwners mapping if it's an Ethereum chain type
+        if (keccak256(bytes(chainType)) == keccak256(bytes("ethereum"))) {
+            tokenOwners[tokenId] = msg.sender;
+        }
+        
+        // Updated event emission with chainType and ownerAddress
+        emit MintRequest(
+            msg.sender,
+            tokenId,
+            chainType,
+            ownerAddress,
+            tokenURI,
+            extension
+        );
     }
 
     // Function to request transfer of an NFT
