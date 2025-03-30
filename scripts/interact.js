@@ -2,9 +2,9 @@ const hre = require("hardhat");
 
 // Configuration
 const CONFIG = {
-  contractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  contractAddress: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
   defaultFee: "0.1", // ETH
-  operation: "transfer", // Options: "mint", "burn", "transfer"
+  operation: "setExtension", // mint, burn, transfer, setMetadata, setExtension
 };
 
 // Main execution function
@@ -24,8 +24,14 @@ async function main() {
       case "transfer":
         await transferNFT(NFTProxy);
         break;
+      case "setMetadata":
+        await setMetadataNFT(NFTProxy);
+        break;
+      case "setExtension":
+        await setExtensionNFT(NFTProxy);
+        break;
       default:
-        console.log(`Operation '${CONFIG.operation}' not supported. Please choose from: mint, burn, transfer`);
+        console.log(`Operation '${CONFIG.operation}' not supported. Please choose from: mint, burn, transfer, setMetadata, setExtension`);
     }
   } catch (error) {
     handleError(error);
@@ -38,11 +44,19 @@ async function connectToContract(address) {
   return await hre.ethers.getContractAt("NFTProxy", address);
 }
 
+// Helper function to encode metadata
+function encodeMetadata(metadata) {
+  // Convert metadata to JSON string
+  const metadataString = JSON.stringify(metadata);
+  // Encode directly as bytes without the extra string type wrapping
+  return ethers.toUtf8Bytes(metadataString);
+}
+
 // Mint NFT function
 async function mintNFT(NFTProxy) {
   // Mint parameters
   const params = {
-    tokenId: "105",
+    tokenId: "112",
     chainType: "ethereum",
     ownerAddress: "0x0729a81A995Bed60F4F6C5Ec960bEd999740e160",
     tokenURI: "https://example.com/metadata/1",
@@ -59,11 +73,8 @@ async function mintNFT(NFTProxy) {
     }
   };
 
-  // Encode metadata as bytes
-  const extension = hre.ethers.AbiCoder.defaultAbiCoder().encode(
-    ["string"],
-    [JSON.stringify(params.metadata)]
-  );
+  // Encode metadata using the new helper function
+  const extension = encodeMetadata(params.metadata);
 
   // Log mint parameters
   console.log("\n=== MINT NFT ===");
@@ -170,6 +181,91 @@ async function transferNFT(NFTProxy) {
   } catch (error) {
     console.log("\n⚠️ Could not verify new ownership:", error.message);
   }
+}
+
+// Set Metadata NFT function
+async function setMetadataNFT(NFTProxy) {
+  // Metadata parameters
+  const params = {
+    tokenId: "106",
+    tokenURI: "https://example.com/updated-metadata/1",
+  };
+
+  // Verify token ownership before metadata update
+  await verifyTokenOwnership(NFTProxy, params.tokenId);
+
+  // Log metadata parameters
+  console.log("\n=== SET METADATA NFT ===");
+  console.log("Token ID:", params.tokenId);
+  console.log("New Token URI:", params.tokenURI);
+
+  // Send setMetadata transaction
+  console.log("\nSending setMetadata transaction...");
+  const setMetadataTx = await NFTProxy.requestSetMetadata(
+    params.tokenId,
+    params.tokenURI
+  );
+
+  // Log transaction details
+  logTransactionDetails(setMetadataTx, "SetMetadata");
+
+  // Wait for confirmation
+  const setMetadataReceipt = await setMetadataTx.wait();
+  console.log(`\nSetMetadata Transaction confirmed in block: ${setMetadataReceipt.blockNumber}`);
+
+  // Log events
+  logEvents(setMetadataReceipt, "MetadataUpdateRequest");
+}
+
+// Set Extension NFT function
+async function setExtensionNFT(NFTProxy) {
+  // Extension parameters
+  const params = {
+    tokenId: "112",
+    metadata: {
+      name: "CHAINED NFT",
+      description: "CHAINED NFT bridged from Ethereum to Nibiru",
+      image: "https://example.com/updated-image-hehe.png",
+      attributes: [
+        {
+          trait_type: "Source Chain",
+          value: "Ethereum"
+        },
+        {
+          trait_type: "Last Updated",
+          value: new Date().toISOString()
+        }
+      ]
+    }
+  };
+
+  // Encode metadata using the new helper function
+  const extension = encodeMetadata(params.metadata);
+
+  // Verify token ownership
+  await verifyTokenOwnership(NFTProxy, params.tokenId);
+
+  // Log extension parameters
+  console.log("\n=== SET EXTENSION NFT ===");
+  console.log("Token ID:", params.tokenId);
+  console.log("Extension (Metadata):", JSON.stringify(params.metadata, null, 2));
+
+  // Send setExtension transaction
+  console.log("\nSending setExtension transaction...");
+  const setExtensionTx = await NFTProxy.requestSetExtension(
+    params.tokenId,
+    extension
+  );
+
+  // Log transaction details
+  logTransactionDetails(setExtensionTx, "SetExtension");
+
+  // Wait for confirmation
+  const setExtensionReceipt = await setExtensionTx.wait();
+  console.log(`\nSetExtension Transaction confirmed in block: ${setExtensionReceipt.blockNumber}`);
+
+  // Log events
+  logEvents(setExtensionReceipt, "ExtensionUpdateRequest");
 }
 
 // Helper function to verify token ownership

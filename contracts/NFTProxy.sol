@@ -26,6 +26,18 @@ contract NFTProxy is Ownable, ReentrancyGuard {
         string tokenId
     );
 
+    event MetadataUpdateRequest(
+        address indexed requester,
+        string tokenId,
+        string tokenURI
+    );
+
+    event ExtensionUpdateRequest(
+        address indexed requester,
+        string tokenId,
+        bytes extension
+    );
+
     // Mapping to track minted tokenIds
     mapping(string => bool) private mintedTokenIds;
 
@@ -85,6 +97,26 @@ contract NFTProxy is Ownable, ReentrancyGuard {
         delete tokenOwners[tokenId];
         
         emit BurnRequest(msg.sender, tokenId);
+    }
+
+    // Function to request setting metadata of an NFT
+    function requestSetMetadata(
+        string calldata tokenId,
+        string calldata tokenURI
+    ) external nonReentrant {
+        require(tokenOwners[tokenId] == msg.sender, "Not token owner");
+        
+        emit MetadataUpdateRequest(msg.sender, tokenId, tokenURI);
+    }
+
+    // Function to request setting extension of an NFT
+    function requestSetExtension(
+        string calldata tokenId,
+        bytes calldata extension
+    ) external nonReentrant {
+        require(tokenOwners[tokenId] == msg.sender, "Not token owner");
+        
+        emit ExtensionUpdateRequest(msg.sender, tokenId, extension);
     }
 
     // Public getter function for tokenOwners
